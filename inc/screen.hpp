@@ -2,7 +2,11 @@
 
 #include<string>
 #include<cstdio>
-#include<windows.h>
+#include<Windows.h>
+
+#ifndef MULTI_CONSOLE_LIBRARY
+#define MULTI_CONSOLE_LIBRARY
+#endif
 
 void setFont(int size);
 
@@ -15,6 +19,7 @@ class Screen {
     char* buffer;
     HANDLE buf_handler;
     DWORD bytes_written;
+    DWORD pid;
 
     void roll(int height);
 
@@ -22,6 +27,8 @@ class Screen {
     COORD& mp(int _height, int _width);
 
     public:
+
+    static DWORD current_pid;
 
     Screen() = delete;
     Screen(Screen&) = delete;
@@ -38,6 +45,8 @@ class Screen {
     char& operator()();
     char& operator()(int _height, int _width);
     
+    Screen& operator<<(const char* input);
+    Screen& operator<<(int input);
     Screen& operator<<(std::string input);
     Screen& operator<<(char input);
     Screen& operator<<(command);
@@ -46,3 +55,5 @@ class Screen {
     void clear();
     ~Screen();
 };
+
+
