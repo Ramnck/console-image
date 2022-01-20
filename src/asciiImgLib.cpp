@@ -1,5 +1,11 @@
 #include<asciiImgLib.hpp>
 
+char gradient[] = " .:!/rl1Z4H9W8$@";
+char uwugrad[] =  " .:^uwUW";
+char aragrad[] =  " .:^raAR";
+
+char c = 0;
+
 void reverse(char* array) {
     int len = strlen(array);
     char temp;
@@ -10,7 +16,12 @@ void reverse(char* array) {
     }
 }
 
-Image::Image(std::string filename, int color = 0) {
+
+Image::Image(int width, int height) : w(width), h(height), bmp(0), palette(0) {}
+
+Image::~Image() { if(bmp) delete[] bmp; if(palette) delete[] palette; }
+
+Image::Image(std::string filename, int color) : w(), h(), bmp(0), palette(0) {
     if (filename.find(".bmp") == std::string::npos) filename += ".bmp";
     FILE * file = fopen(filename.c_str(), "rb");
     if (!file) {
@@ -22,7 +33,10 @@ Image::Image(std::string filename, int color = 0) {
     }
     char header[2];
     fread(header, 2, 1, file);
+    // printf("%d\n", c++);
+
     if (header[0] == 'B' && header[1] == 'M') {
+        // printf("im in \t %d\n", c++);
         short d;
         fseek(file, 18, SEEK_SET);
         int width, height;
@@ -33,10 +47,11 @@ Image::Image(std::string filename, int color = 0) {
 
         // Image* output;
         if (d == 1) {
-            Image(width, height);
             // if (width != 128 && width != 16 || height != 16 && height != 64) {printf("ERROR: wrong resolution in file %s", filename.c_str()); exit(1);}
+            bmp = new char[width * height];
+            w = width;
+            h = height;
             palette = new char[3];
-            bmp = new char[width*height];
             palette[0] = -37;
             palette[1] = ' ';
             palette[2] = 0;
@@ -57,21 +72,25 @@ Image::Image(std::string filename, int color = 0) {
             }
             
         } else if (d == 4) {
+// printf("ok stage 2\t%d\n", c++);
             width *= 2;
-            Image(width, height);
-            palette = new char[40];
-            switch (color)
+// printf("BMP BUFFER: %p\n", bmp);
+            bmp = new char[width * height + 1];
+            w = width;
+            h = height;
+            palette = new char[65];
+            switch (color / 2)
             {
-            case 0: case 1:
+            case 0: 
                 strcpy(palette, gradient);
                 break;
-            case 2: case 3:
+            case 1:
                 strcpy(palette, uwugrad);
                 break;
-            case 4: case 5:
+            case 2:
                 strcpy(palette, aragrad);
                 break;
-            case 6: case 7:
+            case 3:
                 //  .:!░▒▓█
                 palette[0] = ' ';
                 palette[1] = (char)176; // ░
@@ -87,12 +106,13 @@ Image::Image(std::string filename, int color = 0) {
             }
             double grad_scale = strlen(gradient) / (double)strlen(palette);
             if (color % 2) reverse(palette);
-            
+// printf("PALETTE ARE SET\n%s\nw: %d\th: %d\ngrad_scale: %f\nbuf: %p\n", palette, width, height, grad_scale, bmp);
             fseek(file, 118, SEEK_SET);
             for (int _h = height - 1; _h >= 0; _h--) { 
                 char byte, bytes_to_skip = (4 - ((int)std::ceil((double)(width/2) / 2.0) % 4)) % 4;
                 for(int _w = 0; _w < width; _w+=4) {
                     fread(&byte, 1, 1, file);
+// printf("pix 1,2: %d\tpix 3,4: %d\n", int(((byte & 0b11110000) >> 4) / grad_scale), int((byte &0b1111) / grad_scale));
                     bmp[_h * w + _w] = palette[int(((byte & 0b11110000) >> 4) / grad_scale)];
                     bmp[_h * w + _w + 1] = bmp[_h * w + _w];
                     bmp[_h * w + _w + 2] =  palette[int((byte &0b1111) / grad_scale)];
@@ -100,32 +120,25 @@ Image::Image(std::string filename, int color = 0) {
                 }
                 fseek(file, bytes_to_skip, SEEK_CUR);
             }
+// printf("im fucking cuming\t%d\n", c++);
         } else {
             printf("Wrong color depth\n");
             fclose(file);
             exit(1);
         }
     } else {
+// printf("hmmm \t%d\n", c++);
         printf("Wrong file format");
         fclose(file);
         exit(1);
     }
+// printf("okaaaay\n", c++);
     
 }
 
 
+char& Image::operator()(int height, int width) { return *(bmp + w * height + width); }
 
-char& Image::operator()(int height, int width = 0) { return *(bmp + w * height + width); }
-
-Image::Image(int width, int height) : w(width), h(height), bmp() {
-    bmp = new char[width*height + 1]; 
-    memset(bmp, ' ', h * w + 1);
-}
-
-Image::~Image() {
-    if(bmp) delete[] bmp;
-    if(palette) delete[] palette;
-}
 
 Image* Image::crop(double crop = 1) {
     Image& img = *this;
@@ -141,7 +154,7 @@ Image* Image::crop(double crop = 1) {
     return this;
 }
 
-Image& Image::scale(double scale = 1) {
+Image& Image::scale(double scale) {
     char temp;
     int sum = 0;
     Image& img = *this;
@@ -158,8 +171,10 @@ Image& Image::scale(double scale = 1) {
     return *this;
 }
 
-std::pair<int,int> Image::resolution() { 
-    return std::make_pair(w, h);
+Resolution Image::resolution() {
+    // std::cout << w << h;
+    Resolution temp{w,h};
+    return temp;
 }
 
 
@@ -170,7 +185,7 @@ std::ostream& operator<<(std::ostream& out, Image& img) {
 }
 std::ostream& operator<<(std::ostream& out, Image* img) {
     for(int i = 0; i < img->h; i++) {
-        fwrite(&(*img)(i), img->w, 1, stdout); 
+        fwrite(&(*img)(i, 0), img->w, 1, stdout); 
         putchar('\n');
     }
     return out;

@@ -2,11 +2,11 @@
 #include<screen.hpp>
 
 
-Image* setConsole(Image* img) {
+void setConsole(int w, int h) {
     std::string text = "mode con cols=";
-    text += std::to_string(img->w);
+    text += std::to_string(w);
     text += " lines=";
-    text += std::to_string(img->h+2);
+    text += std::to_string(h+2);
     
     system(text.c_str());
     // COORD crd = {img->w, img->h + 2};
@@ -17,17 +17,11 @@ Image* setConsole(Image* img) {
     // console_handler = CreateConsoleScreenBuffer(GENERIC_READ | GENERIC_WRITE, 0, NULL, CONSOLE_TEXTMODE_BUFFER, NULL); 
 	// SetConsoleActiveScreenBuffer(console_handler);
 
-
-    return img;
 }
 
 using namespace std;
 
 int main(int argc, char **argv) {
-
-    gradient[1] = (char)249;
-    uwugrad[1] = (char)249;
-    aragrad[1] = (char)249;
 
     int color = 0, speed = 1, called_from_console = 1, print_with_CR = 0, external_console = 1;
     double crop = 1;
