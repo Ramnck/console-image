@@ -44,7 +44,20 @@ class Screen {
     char* buffer;
     HANDLE buf_handler;
     DWORD bytes_written;
-    // PROCESS_INFORMATION pinf;
+    bool external_console;
+    COORD orig_size;
+    CONSOLE_FONT_INFOEX orig_font;
+/*
+    typedef struct {
+        _SMALL_RECT Rect;
+        COORD coord;
+        int font;
+        double scr_w;
+        double scr_h;
+    } INIT_STRUCT;
+*/
+    int first_part_of_init(int font);
+    void last_part_of_init(int font);
 
     void roll(int height);
 
@@ -55,37 +68,31 @@ class Screen {
     char& pix(int _height, int _width);
 
     public:
-    
-    COORD orig_size;
-    CONSOLE_FONT_INFOEX orig_font;
 
-    // static DWORD current_pid;
+    Screen(int _width, int _height, int external_console, int font);
+
+    #ifdef ASCII_IMAGE_LIBRARY
+    Screen(Image& img, int external_console, int font);
+    Screen& operator<<(Image& input);
+    #endif
 
     Screen() = delete;
     Screen(Screen&) = delete;
-
     Screen& operator=(Screen&) = delete;
-    
-    Screen(int _width, int _height, int external_console, int font);
 
-
-    // #ifdef ASCII_IMAGE_LIBRARY
-    Screen(Image& img, int external_console, int font);
-    Screen& operator<<(Image& input);
-    // #endif
+    ~Screen();
     
-    // char& operator()();
-    // char& operator()(int _height, int _width);
-    
-    Screen& operator<<(const char* input);
-    Screen& operator<<(int input);
     Screen& operator<<(std::string input);
     Screen& operator<<(char input);
     Screen& operator<<(command);
 
+    Screen& operator<<(double input);
+    Screen& operator<<(const char* input);
+    Screen& operator<<(int input);
+
     void display();
     void clear();
-    ~Screen();
+    
 };
 
 

@@ -10,13 +10,20 @@ using namespace std;
 // DWORD Screen::current_pid;
 
 int main(int argc, char** argv) {
-    Image img("ahegao", 2);
+    
+
+    int scr_w = GetSystemMetrics(SM_CXSCREEN);
+    int scr_h = GetSystemMetrics(SM_CYSCREEN); 
+
+    // cout << scr_h << ' ' << scr_w;
+
+    Image img(argc > 1 ? argv[1] : "gojo", 0);
 
     // cout << img;
 
-    Screen s(img, 1, 7);
+    Screen s(img.crop(1), 0, 15);
 
-    s << img.crop(argc > 1 ? atof(argv[1]) : 1);
+    s << img;
     // s << img;
     // FreeConsole();
     // AttachConsole((DWORD)-1);

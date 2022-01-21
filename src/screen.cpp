@@ -10,6 +10,7 @@ void setFont(int size) {
     GetCurrentConsoleFontEx(hConsole, 0, &fontInfo);
     
     fontInfo.dwFontSize.Y = size;
+    fontInfo.dwFontSize.X = size / 2;
     
     SetCurrentConsoleFontEx(hConsole, TRUE, &fontInfo); 
 }
@@ -22,52 +23,121 @@ void setConsole(int w, int h) {
     system(text.c_str());
 }
 
-Screen::Screen(int _width, int _height, int external_console, int font) : 
-            width(_width), height(_height), orig_font(), orig_size(),
+int Screen::first_part_of_init(int font) {
+    
+    
+    _COORD coord = {height, width};
+    _SMALL_RECT Rect = {0,0,coord.X - 1, coord.Y - 1};
+    
+    double scr_w = GetSystemMetrics(SM_CXSCREEN);
+    double scr_h = GetSystemMetrics(SM_CYSCREEN);
+
+    CONSOLE_SCREEN_BUFFER_INFO csbiData;
+    GetConsoleScreenBufferInfo(GetStdHandle (STD_OUTPUT_HANDLE), &csbiData);
+
+    orig_size.X = csbiData.dwSize.X;
+    orig_size.Y = csbiData.srWindow.Bottom - csbiData.srWindow.Top;
+
+    ZeroMemory(&orig_font, sizeof(orig_font));
+    orig_font.cbSize = sizeof( orig_font );
+    GetCurrentConsoleFontEx(GetStdHandle (STD_OUTPUT_HANDLE), 0, &orig_font);
+
+    font = std::min( font, (int) std::min( std::ceil(scr_w / width), std::ceil(scr_h / height) ) );
+
+    return font;
+}
+
+void Screen::last_part_of_init(int font) {
+    if (external_console) {
+        FreeConsole();
+        AllocConsole();
+    }
+
+    _COORD coord = {height, width};
+    _SMALL_RECT Rect = {0,0,coord.X - 1, coord.Y - 1};
+
+    setFont(font);
+    setConsole(width, height);
+    
+    HANDLE Handle = GetStdHandle(STD_OUTPUT_HANDLE);
+    buffer = new char[height*width];
+    buf_handler = CreateConsoleScreenBuffer(GENERIC_READ | GENERIC_WRITE, 0, NULL, CONSOLE_TEXTMODE_BUFFER, NULL); 
+
+    SetConsoleActiveScreenBuffer(buf_handler);
+    SetConsoleWindowInfo(Handle, TRUE, &Rect);
+    SetConsoleScreenBufferSize(Handle, coord);
+    this->clear();
+
+}
+
+Screen::Screen(Image& img, int _external_console, int font) : 
+            width(img.resolution().w), height(img.resolution().h), orig_font(), 
+            orig_size(), external_console(_external_console),
             buffer(), buf_handler(), bytes_written(), pointer({0,0}) {
-        _COORD coord = {height, width};
-        _SMALL_RECT Rect = {0,0,coord.X - 1, coord.Y - 1};
 
-        CONSOLE_SCREEN_BUFFER_INFO csbiData;
-        GetConsoleScreenBufferInfo(GetStdHandle (STD_OUTPUT_HANDLE), &csbiData);
+    
+    // double img_w = (double)width * (double)orig_font.dwFontSize.X;
+    // double img_h = (double)height * (double)orig_font.dwFontSize.Y;
+// /*
 
-        orig_size.X = csbiData.dwSize.X;
-        orig_size.Y = csbiData.srWindow.Bottom - csbiData.srWindow.Top;
+    int f = first_part_of_init(font);
 
-        ZeroMemory(&orig_font, sizeof(orig_font));
-        orig_font.cbSize = sizeof( orig_font );
-        GetCurrentConsoleFontEx(GetStdHandle (STD_OUTPUT_HANDLE), 0, &orig_font);
+    double scr_w = GetSystemMetrics(SM_CXSCREEN);
+    double scr_h = GetSystemMetrics(SM_CYSCREEN);
+// /*
+    if (width > scr_w || height > scr_h) {
+        RESOLUTION r = img.scale(std::max(width / scr_w, height / scr_h)).resolution();
+        // RESOLUTION r = img.resolution();
+        width = r.w;
+        height = r.h;
+        // INFO.coord.X = width;
+        // INFO.coord.Y = height;
+        // INFO.Rect.Right = width - 1;
+        // INFO.Rect.Bottom = height - 1;
+    }
+// */
+    last_part_of_init(f);
 
-        if (external_console) {
-            FreeConsole();
-            AllocConsole();
-        }
-
-        setConsole(_width, _height);
-        setFont(font);
-
-        HANDLE Handle = GetStdHandle(STD_OUTPUT_HANDLE);
-        buffer = new char[height*width];
-        buf_handler = CreateConsoleScreenBuffer(GENERIC_READ | GENERIC_WRITE, 0, NULL, CONSOLE_TEXTMODE_BUFFER, NULL); 
-
-        SetConsoleActiveScreenBuffer(buf_handler);
-        SetConsoleWindowInfo(Handle, TRUE, &Rect);
-        SetConsoleScreenBufferSize(Handle, coord);
-        this->clear();
-        // Screen::current_pid = pinf.dwProcessId;
+    
+// */
+    // if ( ) {
+        
+    // }
+    
+    
+    // (*this) << "font : " << font << " scr_w: " << scr_w << " scr_h: " << scr_h << " width: " << width << " height: " << height; while(1);
+    // Screen::current_pid = pinf.dwProcessId;
 }
 
 #ifdef ASCII_IMAGE_LIBRARY
 
-Screen::Screen(Image& img, int external_console, int font ) : Screen(img.resolution().w, img.resolution().h, external_console, font) {}
+Screen::Screen(int _width, int _height, int _external_console, int font ) : 
+            width(_width), height(_height), orig_font(), 
+            orig_size(), external_console(_external_console),
+            buffer(), buf_handler(), bytes_written(), pointer({0,0}) {
 
+    last_part_of_init(first_part_of_init(font));
+
+    }
+
+// cd \prog\C\projects\console-image && del test.exe && make test && test
 
 Screen::~Screen() {
     if (buffer) delete[] buffer;
-    FreeConsole();
-    AttachConsole((DWORD)-1);
-    GetCurrentConsoleFontEx(GetStdHandle (STD_OUTPUT_HANDLE), TRUE, &orig_font);
-    setConsole(orig_size.X, orig_size.Y);
+    if (external_console) {
+        FreeConsole();
+        AttachConsole((DWORD)-1);
+    }
+    HANDLE Handle = GetStdHandle(STD_OUTPUT_HANDLE);
+    SetConsoleActiveScreenBuffer(Handle);
+    SetCurrentConsoleFontEx(Handle, TRUE, &orig_font);
+    if (external_console)
+        setConsole(orig_size.X, orig_size.Y);
+    else {
+        _SMALL_RECT Rect = {0, 0, orig_size.X - 1, orig_size.Y - 1};
+        SetConsoleWindowInfo(Handle, TRUE, &Rect);
+        SetConsoleScreenBufferSize(Handle, orig_size);
+    }
 }
 
 Screen& Screen::operator<<(Image& input) {
@@ -166,16 +236,17 @@ Screen& Screen::operator<<(std::string input) {
 
 Screen& Screen::operator<<(const char* input) {
     // if (Screen::current_pid != pid) { FreeConsole(); AttachConsole(pid); Screen::current_pid = pid;}
-
     
     return (*this) << std::string(input);
 }
 
 Screen& Screen::operator<<(int input) {
-    (*this) << std::to_string(input);
-    return *this;
+    return (*this) << std::to_string(input);
 }
 
+Screen& Screen::operator<<(double input) {
+    (*this) << std::to_string(input);
+}
 
 void Screen::roll(int _height) {
     memcpy(buffer, &this->pix(_height, 0), (height - std::min(_height, height)) * width);
