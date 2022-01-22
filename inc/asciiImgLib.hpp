@@ -1,18 +1,15 @@
 #pragma once
 
 #include<cstdio>
-#include<cstdlib>
 #include<string>
 #include<cmath>
 #include<iostream>
-#include<conio.h>
-#include<cstring>
 #include<windows.h>
 
 #ifndef ASCII_IMAGE_LIBRARY
 #define ASCII_IMAGE_LIBRARY
 #endif
-
+/*
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -20,11 +17,13 @@ BOOL WINAPI AttachConsole(DWORD dwProcessId);
 #ifdef __cplusplus
 }
 #endif
+*/
 typedef struct {
     int w;
     int h;
 } RESOLUTION;
 
+std::ostream& operator<<(std::ostream& out, const RESOLUTION& res);
 
 class Image {
 	char* bmp;
@@ -33,7 +32,7 @@ class Image {
 public:
     char* palette;
 
-    Image(std::string filename, int color = 0);
+    Image(std::string filename, int color, double crop);
     Image(int width, int height);
 
     Image() = delete;
@@ -44,7 +43,7 @@ public:
 
     RESOLUTION resolution() const;
 
-    char& operator()(int height, int width);
+    const char& operator()(int height, int width) const;
 
     Image& scale(double scale);
     // Image& scale(double scale);

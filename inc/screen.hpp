@@ -16,7 +16,7 @@ enum command {endl, clrs, retc};
 class Image;
 
 // const DWORD main_pid = GetCurrentProcessId(); 
-
+/*
 typedef struct _CONSOLE_FONT_INFOEX
 {
     ULONG cbSize;
@@ -36,7 +36,7 @@ BOOL WINAPI AttachConsole(DWORD dwProcessId);
 #ifdef __cplusplus
 }
 #endif
-
+*/
 class Screen {
     COORD pointer;
     int width;
@@ -47,6 +47,7 @@ class Screen {
     bool external_console;
     COORD orig_size;
     CONSOLE_FONT_INFOEX orig_font;
+    
 /*
     typedef struct {
         _SMALL_RECT Rect;
@@ -73,7 +74,7 @@ class Screen {
 
     #ifdef ASCII_IMAGE_LIBRARY
     Screen(Image& img, int external_console, int font);
-    Screen& operator<<(Image& input);
+    Screen& operator<<(const Image& input);
     #endif
 
     Screen() = delete;

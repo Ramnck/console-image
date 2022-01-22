@@ -9,6 +9,8 @@ void setFont(int size) {
     fontInfo.cbSize = sizeof( fontInfo );
     GetCurrentConsoleFontEx(hConsole, 0, &fontInfo);
     
+    size = std::max(2, size);
+
     fontInfo.dwFontSize.Y = size;
     fontInfo.dwFontSize.X = size / 2;
     
@@ -25,16 +27,11 @@ void setConsole(int w, int h) {
 
 int Screen::first_part_of_init(int font) {
     
-    
     _COORD coord = {height, width};
     _SMALL_RECT Rect = {0,0,coord.X - 1, coord.Y - 1};
     
-    double scr_w = GetSystemMetrics(SM_CXSCREEN);
-    double scr_h = GetSystemMetrics(SM_CYSCREEN);
-
     CONSOLE_SCREEN_BUFFER_INFO csbiData;
     GetConsoleScreenBufferInfo(GetStdHandle (STD_OUTPUT_HANDLE), &csbiData);
-
     orig_size.X = csbiData.dwSize.X;
     orig_size.Y = csbiData.srWindow.Bottom - csbiData.srWindow.Top;
 
@@ -42,12 +39,16 @@ int Screen::first_part_of_init(int font) {
     orig_font.cbSize = sizeof( orig_font );
     GetCurrentConsoleFontEx(GetStdHandle (STD_OUTPUT_HANDLE), 0, &orig_font);
 
-    font = std::min( font, (int) std::min( std::ceil(scr_w / width), std::ceil(scr_h / height) ) );
-
     return font;
 }
 
 void Screen::last_part_of_init(int font) {
+
+    double scr_w = GetSystemMetrics(SM_CXSCREEN);
+    double scr_h = GetSystemMetrics(SM_CYSCREEN);
+
+    font = std::min( font, (int) std::min( scr_w / (double)width, scr_h / 2 / (double)height) );
+
     if (external_console) {
         FreeConsole();
         AllocConsole();
@@ -70,49 +71,37 @@ void Screen::last_part_of_init(int font) {
 
 }
 
-Screen::Screen(Image& img, int _external_console, int font) : 
-            width(img.resolution().w), height(img.resolution().h), orig_font(), 
+Screen::Screen(Image& img, int _external_console = 1, int font = 15) : 
+            width(0), height(0), orig_font(), 
             orig_size(), external_console(_external_console),
-            buffer(), buf_handler(), bytes_written(), pointer({0,0}) {
+            buffer(0), buf_handler(), bytes_written(), pointer({0,0}) {
 
     
     // double img_w = (double)width * (double)orig_font.dwFontSize.X;
     // double img_h = (double)height * (double)orig_font.dwFontSize.Y;
 // /*
 
-    int f = first_part_of_init(font);
-
     double scr_w = GetSystemMetrics(SM_CXSCREEN);
     double scr_h = GetSystemMetrics(SM_CYSCREEN);
-// /*
-    if (width > scr_w || height > scr_h) {
-        RESOLUTION r = img.scale(std::max(width / scr_w, height / scr_h)).resolution();
-        // RESOLUTION r = img.resolution();
-        width = r.w;
-        height = r.h;
-        // INFO.coord.X = width;
-        // INFO.coord.Y = height;
-        // INFO.Rect.Right = width - 1;
-        // INFO.Rect.Bottom = height - 1;
-    }
-// */
-    last_part_of_init(f);
 
-    
-// */
-    // if ( ) {
-        
-    // }
-    
-    
-    // (*this) << "font : " << font << " scr_w: " << scr_w << " scr_h: " << scr_h << " width: " << width << " height: " << height; while(1);
-    // Screen::current_pid = pinf.dwProcessId;
+    RESOLUTION r = img.resolution();
+
+    if (r.w > scr_w - 10 || r.h > scr_h - 10) 
+        img.scale(std::max((double)r.w / (scr_w - 20.0), (double)r.h / (scr_h / 2.0 - 20.0)));
+
+    r = img.resolution();
+    width = r.w;
+    height = r.h;
+
+    int f = first_part_of_init(font);
+
+    last_part_of_init(f);
 }
 
 #ifdef ASCII_IMAGE_LIBRARY
 
-Screen::Screen(int _width, int _height, int _external_console, int font ) : 
-            width(_width), height(_height), orig_font(), 
+Screen::Screen(int _width, int _height, int _external_console = 1, int font = 15) :
+            width(_width), height(_height), orig_font(),
             orig_size(), external_console(_external_console),
             buffer(), buf_handler(), bytes_written(), pointer({0,0}) {
 
@@ -140,7 +129,7 @@ Screen::~Screen() {
     }
 }
 
-Screen& Screen::operator<<(Image& input) {
+Screen& Screen::operator<<(const Image& input) {
     // if (Screen::current_pid != pinf.dwProcessId) { FreeConsole(); AttachConsole(pinf.dwProcessId); Screen::current_pid = pinf.dwProcessId;}
     // int img_w = input.resolution().first > width ? width: input.resolution().first, img_h = ? : ;
     int img_w = input.resolution().w, img_h = std::min(input.resolution().h, height), CRLF = 0;

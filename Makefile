@@ -4,4 +4,4 @@ SRCS=$(shell dir /b /s *.cpp)
 all:
 	$(CC) $(CFLAGS) $(SRCS) -o bmp
 test:
-	$(CC) -w -I inc src/screen.cpp src/test.cpp src/asciiImgLib.cpp -o test 
+	$(CC) -w -I inc src/screen.cpp src/test.cxx src/asciiImgLib.cpp -o test 

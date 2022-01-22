@@ -16,12 +16,15 @@ void reverse(char* array) {
     }
 }
 
+std::ostream& operator<<(std::ostream& out, const RESOLUTION& res) {
+    out << "Width: " << res.w << " Height: " << res.h;
+}
 
 Image::Image(int width, int height) : w(width), h(height), bmp(0), palette(0) {}
 
 Image::~Image() { if(bmp) delete[] bmp; if(palette) delete[] palette; }
 
-Image::Image(std::string filename, int color) : w(), h(), bmp(0), palette(0) {
+Image::Image(std::string filename, int color = 0, double crop = 1.0) : w(), h(), bmp(0), palette(0) {
     if (filename.find(".bmp") == std::string::npos) filename += ".bmp";
     FILE * file = fopen(filename.c_str(), "rb");
     if (!file) {
@@ -138,15 +141,15 @@ Image::Image(std::string filename, int color) : w(), h(), bmp(0), palette(0) {
         fclose(file);
         exit(1);
     }
-    
+    this->scale(crop);
 }
 
 
-char& Image::operator()(int height, int width) { 
+const char& Image::operator()(int height, int width) const { 
     if (height < 0 || width < 0 || height > h || width > w) {
         FreeConsole();
         AttachConsole((DWORD)-1);
-        throw std::runtime_error("Wrong image pixel");
+        // throw std::runtime_error("Wrong image pixel");
     }
     return *(bmp + w * height + width); 
 }
@@ -154,14 +157,15 @@ char& Image::operator()(int height, int width) {
 
 Image& Image::scale(double scale) {
     if (!bmp) return *this;
+    if (scale == 1.0) return *this;
 
-    Image& img = *this;
+    const Image& img = *this;
     int width = (double)w / scale, height = (double)h / scale;
     char* new_buf = new char[width * height];
 
-    for (int h = 0; h < height; h++)
-        for (int w = 0; w < width; w++)
-            new_buf[h * width + w] = img( int(h * scale), int(w * scale) );
+    for (int _h = 0; _h < height; _h++)
+        for (int _w = 0; _w < width; _w++)
+            new_buf[_h * width + _w] = img( int(_h * scale), int(_w * scale) );
     delete[] bmp;
     w = width;
     h = height;
