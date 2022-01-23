@@ -1,5 +1,6 @@
 raw/
 src/*.cxx
-res/h*.bmp
+res/h*.*
+res/s*.*
 test.exe
 .vscode/

@@ -25,7 +25,7 @@ void setConsole(int w, int h) {
     system(text.c_str());
 }
 
-int Screen::first_part_of_init(int font) {
+void Screen::first_part_of_init() {
     
     _COORD coord = {height, width};
     _SMALL_RECT Rect = {0,0,coord.X - 1, coord.Y - 1};
@@ -39,7 +39,6 @@ int Screen::first_part_of_init(int font) {
     orig_font.cbSize = sizeof( orig_font );
     GetCurrentConsoleFontEx(GetStdHandle (STD_OUTPUT_HANDLE), 0, &orig_font);
 
-    return font;
 }
 
 void Screen::last_part_of_init(int font) {
@@ -93,9 +92,11 @@ Screen::Screen(Image& img, int _external_console = 1, int font = 15) :
     width = r.w;
     height = r.h;
 
-    int f = first_part_of_init(font);
+    first_part_of_init();
 
-    last_part_of_init(f);
+    last_part_of_init(font);
+
+    (*this) << img;
 }
 
 #ifdef ASCII_IMAGE_LIBRARY
@@ -105,7 +106,8 @@ Screen::Screen(int _width, int _height, int _external_console = 1, int font = 15
             orig_size(), external_console(_external_console),
             buffer(), buf_handler(), bytes_written(), pointer({0,0}) {
 
-    last_part_of_init(first_part_of_init(font));
+    first_part_of_init();
+    last_part_of_init(font);
 
     }
 
@@ -129,10 +131,24 @@ Screen::~Screen() {
     }
 }
 
-Screen& Screen::operator<<(const Image& input) {
+Screen& Screen::operator<<(Image& input) {
     // if (Screen::current_pid != pinf.dwProcessId) { FreeConsole(); AttachConsole(pinf.dwProcessId); Screen::current_pid = pinf.dwProcessId;}
     // int img_w = input.resolution().first > width ? width: input.resolution().first, img_h = ? : ;
-    int img_w = input.resolution().w, img_h = std::min(input.resolution().h, height), CRLF = 0;
+    
+    double scr_w = GetSystemMetrics(SM_CXSCREEN);
+    double scr_h = GetSystemMetrics(SM_CYSCREEN);
+
+    RESOLUTION r = input.resolution();
+
+    if (r.w > scr_w - 10 || r.h > scr_h - 10) 
+        input.scale(std::max((double)r.w / (scr_w - 20.0), (double)r.h / (scr_h / 2.0 - 20.0)));
+
+    r = input.resolution();
+
+    
+    int img_w = r.w, img_h = r.h,CRLF = 0;
+
+
     if(img_w == width && img_h == height) { 
         memcpy(buffer, &input(0,0), width * height);
         this->display();

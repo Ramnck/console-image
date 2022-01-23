@@ -32,12 +32,13 @@ class Image {
 public:
     char* palette;
 
-    Image(std::string filename, int color, double crop);
+    Image(std::string filename, int color, double crop);                            // Initializating from file (it can be it ./res folder)
     Image(int width, int height);
+    Image(const uint8_t* array, int width, int height, int color, double crop);     // Initializating from uint8 rgba array;
 
-    Image() = delete;
-    Image(Image&) = delete;
-    Image& operator=(Image&) = delete;
+    Image();
+    Image(const Image& img);
+    Image& operator=(const Image& img);
 
 	~Image();
 

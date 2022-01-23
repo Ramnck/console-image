@@ -57,7 +57,7 @@ class Screen {
         double scr_h;
     } INIT_STRUCT;
 */
-    int first_part_of_init(int font);
+    void first_part_of_init();
     void last_part_of_init(int font);
 
     void roll(int height);
@@ -74,7 +74,7 @@ class Screen {
 
     #ifdef ASCII_IMAGE_LIBRARY
     Screen(Image& img, int external_console, int font);
-    Screen& operator<<(const Image& input);
+    Screen& operator<<(Image& input);
     #endif
 
     Screen() = delete;
