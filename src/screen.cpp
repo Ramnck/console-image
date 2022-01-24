@@ -33,7 +33,7 @@ void Screen::first_part_of_init() {
     CONSOLE_SCREEN_BUFFER_INFO csbiData;
     GetConsoleScreenBufferInfo(GetStdHandle (STD_OUTPUT_HANDLE), &csbiData);
     orig_size.X = csbiData.dwSize.X;
-    orig_size.Y = csbiData.srWindow.Bottom - csbiData.srWindow.Top;
+    orig_size.Y = csbiData.srWindow.Bottom - csbiData.srWindow.Top + 1;
 
     ZeroMemory(&orig_font, sizeof(orig_font));
     orig_font.cbSize = sizeof( orig_font );
@@ -70,7 +70,7 @@ void Screen::last_part_of_init(int font) {
 
 }
 
-Screen::Screen(Image& img, int _external_console = 1, int font = 15) : 
+Screen::Screen(cmv::Image& img, int _external_console = 1, int font = 15) : 
             width(0), height(0), orig_font(), 
             orig_size(), external_console(_external_console),
             buffer(0), buf_handler(), bytes_written(), pointer({0,0}) {
@@ -83,7 +83,7 @@ Screen::Screen(Image& img, int _external_console = 1, int font = 15) :
     double scr_w = GetSystemMetrics(SM_CXSCREEN);
     double scr_h = GetSystemMetrics(SM_CYSCREEN);
 
-    RESOLUTION r = img.resolution();
+    cmv::RESOLUTION r = img.resolution();
 
     if (r.w > scr_w - 10 || r.h > scr_h - 10) 
         img.scale(std::max((double)r.w / (scr_w - 20.0), (double)r.h / (scr_h / 2.0 - 20.0)));
@@ -122,7 +122,7 @@ Screen::~Screen() {
     HANDLE Handle = GetStdHandle(STD_OUTPUT_HANDLE);
     SetConsoleActiveScreenBuffer(Handle);
     SetCurrentConsoleFontEx(Handle, TRUE, &orig_font);
-    if (external_console)
+    if (!external_console)
         setConsole(orig_size.X, orig_size.Y);
     else {
         _SMALL_RECT Rect = {0, 0, orig_size.X - 1, orig_size.Y - 1};
@@ -131,14 +131,14 @@ Screen::~Screen() {
     }
 }
 
-Screen& Screen::operator<<(Image& input) {
+Screen& Screen::operator<<(cmv::Image& input) {
     // if (Screen::current_pid != pinf.dwProcessId) { FreeConsole(); AttachConsole(pinf.dwProcessId); Screen::current_pid = pinf.dwProcessId;}
     // int img_w = input.resolution().first > width ? width: input.resolution().first, img_h = ? : ;
     
     double scr_w = GetSystemMetrics(SM_CXSCREEN);
     double scr_h = GetSystemMetrics(SM_CYSCREEN);
 
-    RESOLUTION r = input.resolution();
+    cmv::RESOLUTION r = input.resolution();
 
     if (r.w > scr_w - 10 || r.h > scr_h - 10) 
         input.scale(std::max((double)r.w / (scr_w - 20.0), (double)r.h / (scr_h / 2.0 - 20.0)));

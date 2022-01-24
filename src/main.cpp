@@ -12,18 +12,22 @@ void help(char* process_name) {
     exit(1);
 }
 
-typedef enum {GIF, BMP} filetype;
+typedef enum {GIF, BMP, NONE} filetype;
 
 using namespace std;
+using namespace cmv;
 
 int main(int argc, char **argv) {
 
     int color = 0, speed = 1, called_from_console = 1, external_console = 1;
-    filetype mode = BMP;
+    filetype mode = NONE;
     double crop = 1;
 
     vector<string> file_vec;
     
+    if (argc == 1) 
+        help(argv[0]);
+
     for (int i = 1; i < argc; i++) {
         if (string(argv[i]) == "-h" || string(argv[i]) == "--help") help(argv[0]);
         else if (string(argv[i]) == "-i") color += 1;
@@ -37,6 +41,7 @@ int main(int argc, char **argv) {
     }
 
     if(file_vec[0].find(".gif") != string::npos) mode = GIF;
+    else if(file_vec[0].find(".bmp") != string::npos) mode = BMP;
 
     switch (mode)
     {
@@ -45,10 +50,13 @@ int main(int argc, char **argv) {
         for (auto& bmp : file_vec)
             img_vec.push_back(Image(bmp, color, crop));
 
+        Screen* last_screen;
+
         for (auto& img : img_vec) {
-            new Screen(img, external_console, 15);
+            last_screen = new Screen(img, external_console, 15);
         }
         _getch();
+        delete last_screen;
         break;
     }
     case GIF: {
@@ -90,7 +98,7 @@ int main(int argc, char **argv) {
         
         }
 
-        Screen s(img_arr[0], external_console, 15);
+        Screen s(img_arr[0], external_console, 30);
 
         clock_t start;
         double delay = (double)runtime / (double)num_frames / 100.0;
@@ -110,7 +118,7 @@ int main(int argc, char **argv) {
         break;
     }   
     default:
-        printf("Error: wrong mode");
+        printf("Error: unsupported file extension");
         return 1;
         break;
     }

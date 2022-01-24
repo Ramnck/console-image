@@ -13,7 +13,9 @@ void setConsole(int w, int h);
 
 enum command {endl, clrs, retc};
 
-class Image;
+namespace cmv {
+    class Image;
+}
 
 // const DWORD main_pid = GetCurrentProcessId(); 
 /*
@@ -47,16 +49,7 @@ class Screen {
     bool external_console;
     COORD orig_size;
     CONSOLE_FONT_INFOEX orig_font;
-    
-/*
-    typedef struct {
-        _SMALL_RECT Rect;
-        COORD coord;
-        int font;
-        double scr_w;
-        double scr_h;
-    } INIT_STRUCT;
-*/
+
     void first_part_of_init();
     void last_part_of_init(int font);
 
@@ -73,8 +66,8 @@ class Screen {
     Screen(int _width, int _height, int external_console, int font);
 
     #ifdef ASCII_IMAGE_LIBRARY
-    Screen(Image& img, int external_console, int font);
-    Screen& operator<<(Image& input);
+    Screen(cmv::Image& img, int external_console, int font);
+    Screen& operator<<(cmv::Image& input);
     #endif
 
     Screen() = delete;

@@ -18,40 +18,44 @@ BOOL WINAPI AttachConsole(DWORD dwProcessId);
 }
 #endif
 */
-typedef struct {
-    int w;
-    int h;
-} RESOLUTION;
 
-std::ostream& operator<<(std::ostream& out, const RESOLUTION& res);
+namespace cmv
+{
+    typedef struct {
+        int w;
+        int h;
+    } RESOLUTION;
 
-class Image {
-	char* bmp;
-	int w;
-	int h;
-public:
-    char* palette;
+    std::ostream& operator<<(std::ostream& out, const RESOLUTION& res);
 
-    Image(std::string filename, int color, double crop);                            // Initializating from file (it can be it ./res folder)
-    Image(int width, int height);
-    Image(const uint8_t* array, int width, int height, int color, double crop);     // Initializating from uint8 rgba array;
+    class Image {
+        char* bmp;
+        int w;
+        int h;
+        char* palette;
 
-    Image();
-    Image(const Image& img);
-    Image& operator=(const Image& img);
+    public:
+        Image(std::string filename, int color, double crop);                            // Initializating from file (it can be it ./res folder)
+        Image(int width, int height);
+        Image(const uint8_t* array, int width, int height, int color, double crop);     // Initializating from uint8 rgba array;
 
-	~Image();
+        Image();
+        Image(const Image& img);
+        Image& operator=(const Image& img);
 
-    RESOLUTION resolution() const;
+        ~Image();
 
-    const char& operator()(int height, int width) const;
+        RESOLUTION resolution() const;
 
-    Image& scale(double scale);
-    // Image& scale(double scale);
+        const char& operator()(int height, int width) const;
 
-    friend std::ostream& operator<<(std::ostream& out, Image* img);
-    friend std::ostream& operator<<(std::ostream& out, Image& img);
-    // friend Image* setConsole(Image* img);
-};
+        Image& scale(double scale);
+        /*
+        friend ::std::ostream& operator<<(std::ostream& out, Image* img);
+        friend ::std::ostream& operator<<(std::ostream& out, Image& img);
+        */
+    };
 
-void reverse(char* array);
+    void reverse(char* array);
+
+}

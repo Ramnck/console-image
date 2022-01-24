@@ -1,12 +1,15 @@
 #include<asciiImgLib.hpp>
 
+
+using namespace cmv;
+
 char gradient[] = " .:!/rl1Z4H9W8$@";
 char uwugrad[] =  " .:^uwUW";
 char aragrad[] =  " .:^raAR";
 
 char c = 0;
 
-void reverse(char* array) {
+void cmv::reverse(char* array) {
     int len = strlen(array);
     char temp;
     for(int i = 0; i < len / 2; i++) {
@@ -202,7 +205,6 @@ const char& Image::operator()(int height, int width) const {
     if (height < 0 || width < 0 || height > h || width > w) {
         FreeConsole();
         AttachConsole((DWORD)-1);
-        // throw std::runtime_error("Wrong image pixel");
     }
     return *(bmp + w * height + width); 
 }
@@ -225,35 +227,13 @@ Image& Image::scale(double scale) {
     bmp = new_buf;
     return *this;
 }
-/*
-Image& Image::scale(double scale) {
-    Image& img = *this;
-    int width = (double)w / scale, height = (double)h / scale, iscale;
-    char* new_buf = new char[width * height];
 
-    for (int _h = 0; _h < height; _h++) {
-        for (int _w = 0; _w < width; _w++) {
-            int sum = 0;
-            for (int __h = (_h * scale); __h < std::min(h, int(_h * scale) + iscale); __h++)
-                for (int __w = (_w * scale); __w < std::min(w, int(_w * scale) + iscale); __w++) 
-                    sum += img(std::min(__h, h), std::min(w, __w));
-            new_buf[_h * width + _w] = palette[int(sum / scale / scale)];
-        }
-    }
-    delete[] bmp;
-    w = width;
-    h = height;
-    bmp = new_buf;
-    return *this;
-}
-*/
 RESOLUTION Image::resolution() const {
-    // std::cout << w << h;
     RESOLUTION temp{w,h};
     return temp;
 }
 
-
+/*
 std::ostream& operator<<(std::ostream& out, Image& img) {
     img.bmp[img.w*img.h] = '\0'; 
     out << img.bmp;
@@ -266,3 +246,4 @@ std::ostream& operator<<(std::ostream& out, Image* img) {
     }
     return out;
 }
+*/
