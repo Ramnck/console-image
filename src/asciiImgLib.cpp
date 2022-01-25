@@ -29,7 +29,7 @@ Image::Image(int width, int height) : w(width), h(height), bmp(0), palette(0) {}
 
 Image::~Image() { if(bmp) delete[] bmp; if(palette) delete[] palette; }
 
-Image::Image(std::string filename, int color = 0, double crop = 1.0) : w(), h(), bmp(0), palette(0) {
+Image::Image(std::string filename, int color = 0) : w(), h(), bmp(0), palette(0) {
     // if (filename.find(".bmp") == std::string::npos) filename += ".bmp";
     FILE * file = fopen(filename.c_str(), "rb");
     if (!file) {
@@ -127,10 +127,9 @@ Image::Image(std::string filename, int color = 0, double crop = 1.0) : w(), h(),
         fclose(file);
         exit(1);
     }
-    this->scale(crop);
 }
 
-Image::Image(const uint8_t* array, int width, int height, int color = 0, double crop = 1.0) : 
+Image::Image(const uint8_t* array, int width, int height, int color = 0) : 
             w(width * 2), h(height), 
             bmp(0), palette(0) {
     
@@ -168,7 +167,6 @@ Image::Image(const uint8_t* array, int width, int height, int color = 0, double 
         bmp[i*2+1] = bmp[i*2];
     }
 
-    this->scale(crop);
 }
 
 Image::Image(const Image& img) : bmp(0), w(img.w), h(img.h), palette(0) {
@@ -233,17 +231,17 @@ RESOLUTION Image::resolution() const {
     return temp;
 }
 
-/*
-std::ostream& operator<<(std::ostream& out, Image& img) {
+// /*
+std::ostream& cmv::operator<<(std::ostream& out, Image& img) {
     img.bmp[img.w*img.h] = '\0'; 
     out << img.bmp;
     return out;
 }
-std::ostream& operator<<(std::ostream& out, Image* img) {
+std::ostream& cmv::operator<<(std::ostream& out, Image* img) {
     for(int i = 0; i < img->h; i++) {
         fwrite(&(*img)(i, 0), img->w, 1, stdout); 
         putchar('\n');
     }
     return out;
 }
-*/
+// */

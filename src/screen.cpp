@@ -3,6 +3,13 @@
 
 #include<screen.hpp>
 
+using namespace fcmd;
+
+bool Screen::is_origins_initialisated = false;
+
+double scr_w = GetSystemMetrics(SM_CXSCREEN);
+double scr_h = GetSystemMetrics(SM_CYSCREEN);
+
 void setFont(int size) {
     HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
     CONSOLE_FONT_INFOEX fontInfo;
@@ -30,21 +37,20 @@ void Screen::first_part_of_init() {
     _COORD coord = {height, width};
     _SMALL_RECT Rect = {0,0,coord.X - 1, coord.Y - 1};
     
-    CONSOLE_SCREEN_BUFFER_INFO csbiData;
-    GetConsoleScreenBufferInfo(GetStdHandle (STD_OUTPUT_HANDLE), &csbiData);
-    orig_size.X = csbiData.dwSize.X;
-    orig_size.Y = csbiData.srWindow.Bottom - csbiData.srWindow.Top + 1;
+    if (!is_origins_initialisated) {
+        is_origins_initialisated = true;
+        CONSOLE_SCREEN_BUFFER_INFO csbiData;
+        GetConsoleScreenBufferInfo(GetStdHandle (STD_OUTPUT_HANDLE), &csbiData);
+        orig_size.X = csbiData.dwSize.X;
+        orig_size.Y = csbiData.srWindow.Bottom - csbiData.srWindow.Top + 1;
 
-    ZeroMemory(&orig_font, sizeof(orig_font));
-    orig_font.cbSize = sizeof( orig_font );
-    GetCurrentConsoleFontEx(GetStdHandle (STD_OUTPUT_HANDLE), 0, &orig_font);
-
+        ZeroMemory(&orig_font, sizeof(orig_font));
+        orig_font.cbSize = sizeof( orig_font );
+        GetCurrentConsoleFontEx(GetStdHandle (STD_OUTPUT_HANDLE), 0, &orig_font);
+    }
 }
 
 void Screen::last_part_of_init(int font) {
-
-    double scr_w = GetSystemMetrics(SM_CXSCREEN);
-    double scr_h = GetSystemMetrics(SM_CYSCREEN);
 
     font = std::min( font, (int) std::min( scr_w / (double)width, scr_h / 2 / (double)height) );
 
@@ -59,13 +65,12 @@ void Screen::last_part_of_init(int font) {
     setFont(font);
     setConsole(width, height);
     
-    HANDLE Handle = GetStdHandle(STD_OUTPUT_HANDLE);
     buffer = new char[height*width];
     buf_handler = CreateConsoleScreenBuffer(GENERIC_READ | GENERIC_WRITE, 0, NULL, CONSOLE_TEXTMODE_BUFFER, NULL); 
 
     SetConsoleActiveScreenBuffer(buf_handler);
-    SetConsoleWindowInfo(Handle, TRUE, &Rect);
-    SetConsoleScreenBufferSize(Handle, coord);
+    SetConsoleWindowInfo(buf_handler, TRUE, &Rect);
+    SetConsoleScreenBufferSize(buf_handler, coord);
     this->clear();
 
 }
@@ -75,13 +80,6 @@ Screen::Screen(cmv::Image& img, int _external_console = 1, int font = 15) :
             orig_size(), external_console(_external_console),
             buffer(0), buf_handler(), bytes_written(), pointer({0,0}) {
 
-    
-    // double img_w = (double)width * (double)orig_font.dwFontSize.X;
-    // double img_h = (double)height * (double)orig_font.dwFontSize.Y;
-// /*
-
-    double scr_w = GetSystemMetrics(SM_CXSCREEN);
-    double scr_h = GetSystemMetrics(SM_CYSCREEN);
 
     cmv::RESOLUTION r = img.resolution();
 
@@ -111,8 +109,6 @@ Screen::Screen(int _width, int _height, int _external_console = 1, int font = 15
 
     }
 
-// cd \prog\C\projects\console-image && del test.exe && make test && test
-
 Screen::~Screen() {
     if (buffer) delete[] buffer;
     if (external_console) {
@@ -132,11 +128,6 @@ Screen::~Screen() {
 }
 
 Screen& Screen::operator<<(cmv::Image& input) {
-    // if (Screen::current_pid != pinf.dwProcessId) { FreeConsole(); AttachConsole(pinf.dwProcessId); Screen::current_pid = pinf.dwProcessId;}
-    // int img_w = input.resolution().first > width ? width: input.resolution().first, img_h = ? : ;
-    
-    double scr_w = GetSystemMetrics(SM_CXSCREEN);
-    double scr_h = GetSystemMetrics(SM_CYSCREEN);
 
     cmv::RESOLUTION r = input.resolution();
 
@@ -171,7 +162,6 @@ Screen& Screen::operator<<(cmv::Image& input) {
 #endif /* ASCII_IMAGE_LIBRARY */
 
 Screen& Screen::operator<<(char input) {
-    // if (Screen::current_pid != pinf.dwProcessId) { FreeConsole(); AttachConsole(pinf.dwProcessId); Screen::current_pid = pinf.dwProcessId;}
 
     switch (input)
     {
@@ -198,17 +188,14 @@ Screen& Screen::operator<<(char input) {
 }
 
 Screen& Screen::operator<<(command cmd) {
-    // if (Screen::current_pid != pinf.dwProcessId) { FreeConsole(); AttachConsole(pinf.dwProcessId); Screen::current_pid = pinf.dwProcessId;}
 
     switch (cmd)
     {
     case endl:
         pointer.X = 0;
-        if(pointer.Y == height - 1)
+        if(pointer.Y++ == height - 1)
             roll(1);
-        else 
-            pointer.Y++;
-        break;
+            break;
     case clrs:
         clear();
         break;
@@ -226,7 +213,6 @@ Screen& Screen::operator<<(command cmd) {
 }
 
 Screen& Screen::operator<<(std::string input) {
-    // if (Screen::current_pid != pinf.dwProcessId) { FreeConsole(); AttachConsole(pinf.dwProcessId); Screen::current_pid = pinf.dwProcessId;}
 
     int CRLF = 0;
     if(input.find('\b') != input.npos || input.find('\t') != input.npos || input.find('\n') != input.npos || input.find('\r') != input.npos) {
@@ -240,7 +226,6 @@ Screen& Screen::operator<<(std::string input) {
 }
 
 Screen& Screen::operator<<(const char* input) {
-    // if (Screen::current_pid != pid) { FreeConsole(); AttachConsole(pid); Screen::current_pid = pid;}
     
     return (*this) << std::string(input);
 }
@@ -254,14 +239,13 @@ Screen& Screen::operator<<(double input) {
 }
 
 void Screen::roll(int _height) {
-    memcpy(buffer, &this->pix(_height, 0), (height - std::min(_height, height)) * width);
+    memcpy(buffer, &pix(_height, 0), (height - std::min(_height, height)) * width);
+    memset(buffer + (height - _height) * width, ' ', (height - _height) * width);
     pointer.Y -= std::min(_height, height);
 }
 
 COORD& Screen::mp(int length) {
     pointer.X += length;
-    // pointer.X = pointer.X % width;
-    // pointer.Y = pointer.Y % height;
     if (pointer.Y > height - 1) {
         roll(std::min(length, height));
         pointer.Y = height - 1;

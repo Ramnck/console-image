@@ -16,6 +16,7 @@ typedef enum {GIF, BMP, NONE} filetype;
 
 using namespace std;
 using namespace cmv;
+using namespace fcmd;
 
 int main(int argc, char **argv) {
 
@@ -48,7 +49,7 @@ int main(int argc, char **argv) {
     case BMP: {
         vector<Image> img_vec;
         for (auto& bmp : file_vec)
-            img_vec.push_back(Image(bmp, color, crop));
+            img_vec.push_back(Image(bmp, color).scale(crop));
 
         Screen* last_screen;
 
@@ -94,7 +95,7 @@ int main(int argc, char **argv) {
             img_arr = new Image[num_frames];
             
             for(int i = 0; i < num_frames; i++) 
-                img_arr[i] = (Image(gif.getFrame(i), width, height, color, crop));
+                img_arr[i] = (Image(gif.getFrame(i), width, height, color).scale(crop));
         
         }
 
