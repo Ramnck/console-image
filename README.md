@@ -16,6 +16,6 @@ ____
 
 Supported formats:
 
--BMP
+- BMP
 
 - Gif
