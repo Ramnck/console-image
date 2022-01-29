@@ -5,7 +5,7 @@
 
 using namespace fcmd;
 
-bool Screen::is_origins_initialisated = false;
+bool Screen::origins_initialisated = false;
 
 double scr_w = GetSystemMetrics(SM_CXSCREEN);
 double scr_h = GetSystemMetrics(SM_CYSCREEN);
@@ -32,22 +32,20 @@ void setConsole(int w, int h) {
     system(text.c_str());
 }
 
-void Screen::first_part_of_init() {
+void Screen::orig_size_init() {
+    
+    origins_initialisated = true;
     
     _COORD coord = {height, width};
     _SMALL_RECT Rect = {0,0,coord.X - 1, coord.Y - 1};
-    
-    if (!is_origins_initialisated) {
-        is_origins_initialisated = true;
-        CONSOLE_SCREEN_BUFFER_INFO csbiData;
-        GetConsoleScreenBufferInfo(GetStdHandle (STD_OUTPUT_HANDLE), &csbiData);
-        orig_size.X = csbiData.dwSize.X;
-        orig_size.Y = csbiData.srWindow.Bottom - csbiData.srWindow.Top + 1;
+    CONSOLE_SCREEN_BUFFER_INFO csbiData;
+    GetConsoleScreenBufferInfo(GetStdHandle (STD_OUTPUT_HANDLE), &csbiData);
+    orig_size.X = csbiData.dwSize.X;
+    orig_size.Y = csbiData.srWindow.Bottom - csbiData.srWindow.Top + 1;
 
-        ZeroMemory(&orig_font, sizeof(orig_font));
-        orig_font.cbSize = sizeof( orig_font );
-        GetCurrentConsoleFontEx(GetStdHandle (STD_OUTPUT_HANDLE), 0, &orig_font);
-    }
+    ZeroMemory(&orig_font, sizeof(orig_font));
+    orig_font.cbSize = sizeof( orig_font );
+    GetCurrentConsoleFontEx(GetStdHandle (STD_OUTPUT_HANDLE), 0, &orig_font);
 }
 
 void Screen::last_part_of_init(int font) {
@@ -71,40 +69,15 @@ void Screen::last_part_of_init(int font) {
     SetConsoleActiveScreenBuffer(buf_handler);
     SetConsoleWindowInfo(buf_handler, TRUE, &Rect);
     SetConsoleScreenBufferSize(buf_handler, coord);
-    this->clear();
 
 }
 
-Screen::Screen(cmv::Image& img, int _external_console = 1, int font = 15) : 
-            width(0), height(0), orig_font(), 
-            orig_size(), external_console(_external_console),
-            buffer(0), buf_handler(), bytes_written(), pointer({0,0}) {
-
-
-    cmv::RESOLUTION r = img.resolution();
-
-    if (r.w > scr_w - 10 || r.h > scr_h - 10) 
-        img.scale(std::max((double)r.w / (scr_w - 20.0), (double)r.h / (scr_h / 2.0 - 20.0)));
-
-    r = img.resolution();
-    width = r.w;
-    height = r.h;
-
-    first_part_of_init();
-
-    last_part_of_init(font);
-
-    (*this) << img;
-}
-
-#ifdef ASCII_IMAGE_LIBRARY
-
-Screen::Screen(int _width, int _height, int _external_console = 1, int font = 15) :
+Screen::Screen(int _width, int _height, int _external_console, int font = 15) :
             width(_width), height(_height), orig_font(),
             orig_size(), external_console(_external_console),
             buffer(), buf_handler(), bytes_written(), pointer({0,0}) {
-
-    first_part_of_init();
+    if(!origins_initialisated)
+        orig_size_init();
     last_part_of_init(font);
 
     }
@@ -127,7 +100,32 @@ Screen::~Screen() {
     }
 }
 
-Screen& Screen::operator<<(cmv::Image& input) {
+#ifdef ASCII_IMAGE_LIBRARY
+
+Screen::Screen(cmv::AsciiImage& img, int _external_console, int font = 15) : 
+            width(0), height(0), orig_font(), 
+            orig_size(), external_console(_external_console),
+            buffer(0), buf_handler(), bytes_written(), pointer({0,0}) {
+
+
+    cmv::RESOLUTION r = img.resolution();
+
+    if (r.w > scr_w - 10 || r.h > scr_h - 10) 
+        img.scale(std::max((double)r.w / (scr_w - 20.0), (double)r.h / (scr_h / 2.0 - 20.0)));
+
+    r = img.resolution();
+    width = r.w;
+    height = r.h;
+
+    if (!origins_initialisated)
+        orig_size_init();
+
+    last_part_of_init(font);
+
+    (*this) << img;
+}
+
+Screen& Screen::operator<<(cmv::AsciiImage& input) {
 
     cmv::RESOLUTION r = input.resolution();
 
@@ -202,9 +200,6 @@ Screen& Screen::operator<<(command cmd) {
     case retc:
         pointer.X = 0;
         break;
-    // case tab:
-        // mp(4);
-        // break;
     default:
         break;
     }
@@ -223,6 +218,12 @@ Screen& Screen::operator<<(std::string input) {
         for (auto ch : input)
             (*this) << ch;
     return *this;
+}
+
+Screen& Screen::operator<<(cmv::RESOLUTION r) {
+    Screen& s = *this;
+    s << "W: " << r.w << " H: " << r.h;
+    return s;
 }
 
 Screen& Screen::operator<<(const char* input) {

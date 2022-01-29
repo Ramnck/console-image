@@ -14,31 +14,10 @@ void setConsole(int w, int h);
 enum command {endl, clrs, retc};
 
 namespace cmv {
-    class Image;
+    class AsciiImage;
 }
 
-// const DWORD main_pid = GetCurrentProcessId(); 
-/*
-typedef struct _CONSOLE_FONT_INFOEX
-{
-    ULONG cbSize;
-    DWORD nFont;
-    COORD dwFontSize;
-    UINT  FontFamily;
-    UINT  FontWeight;
-    WCHAR FaceName[LF_FACESIZE];
-}CONSOLE_FONT_INFOEX, *PCONSOLE_FONT_INFOEX;
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-BOOL WINAPI SetCurrentConsoleFontEx(HANDLE hConsoleOutput, BOOL bMaximumWindow, PCONSOLE_FONT_INFOEX lpConsoleCurrentFontEx);
-BOOL WINAPI GetCurrentConsoleFontEx(HANDLE hConsoleOutput, BOOL bMaximumWindow, PCONSOLE_FONT_INFOEX lpConsoleCurrentFontEx);
-BOOL WINAPI AttachConsole(DWORD dwProcessId);
-#ifdef __cplusplus
-}
-#endif
-*/
 namespace fcmd // fast console    
 {
     class Screen {
@@ -51,9 +30,9 @@ namespace fcmd // fast console
         bool external_console;
         COORD orig_size;
         CONSOLE_FONT_INFOEX orig_font;
-        static bool is_origins_initialisated;
+        static bool origins_initialisated;
 
-        void first_part_of_init();
+        void orig_size_init();
         void last_part_of_init(int font);
 
         void roll(int height);
@@ -69,8 +48,9 @@ namespace fcmd // fast console
         Screen(int _width, int _height, int external_console, int font);
 
         #ifdef ASCII_IMAGE_LIBRARY
-        Screen(cmv::Image& img, int external_console, int font);
-        Screen& operator<<(cmv::Image& input);
+        Screen(cmv::AsciiImage& img, int external_console, int font);
+        Screen& operator<<(cmv::AsciiImage& input);
+        Screen& operator<<(cmv::RESOLUTION r);
         #endif
 
         Screen() = delete;
@@ -86,6 +66,7 @@ namespace fcmd // fast console
         Screen& operator<<(double input);
         Screen& operator<<(const char* input);
         Screen& operator<<(int input);
+        
 
         void display();
         void clear();
