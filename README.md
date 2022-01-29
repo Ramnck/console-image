@@ -11,14 +11,11 @@
 ```cmd
     cmv -h/--help
 ```
+If you specify '-ex' flag you will be able to see multiply files
 ____
 
-Currently supported formats:
-- Picures:
-    -BMP
-    -~~JPEG~~
-    -~~PNG~~
-- Gif
+Supported formats:
 
-- ~~Movies~~:
-    -~~MP4~~
+- BMP
+
+- Gif
