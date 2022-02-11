@@ -1,10 +1,10 @@
-#include<asciiImgLib.hpp>
+#include <asciiImgLib.hpp>
 
 using namespace cmv;
 
-char gradient[] = " .:!/rl1Z4H9W8$@";
-char uwugrad[] =  " .:^uwUW";
-char aragrad[] =  " .:^raAR";
+static char gradient[] = " .:!/rl1Z4H9W8$@";
+static char uwugrad[] =  " .:^uwUW";
+static char aragrad[] =  " .:^raAR";
 
 char c = 0;
 
@@ -18,31 +18,41 @@ void cmv::reverse(char* array) {
     }
 }
 
-AsciiImage::AsciiImage() : w(0), h(0), bmp(0), palette(0) {}
+class FILE_impl {
 
-AsciiImage::AsciiImage(int width, int height) : w(width), h(height), bmp(0), palette(0) {}
+public:
+    FILE* file_m;
 
-AsciiImage::~AsciiImage() { if(bmp) delete[] bmp; if(palette) delete[] palette; }
-
-AsciiImage::AsciiImage(std::string filename, int color = 0) : w(), h(), bmp(0), palette(0) {
+    FILE_impl(FILE* file) : file_m(file) {};
+    FILE_impl() : file_m(nullptr) {};
+    void operator=(FILE* file) { if (file_m) fclose(file_m); file_m = file; }
+    inline bool is_empty() { return file_m; };
+    ~FILE_impl() { if (file_m) fclose(file_m); };
     
-    FILE * file = fopen(filename.c_str(), "rb");
-    if (!file) {
+    inline operator FILE*() { return file_m; };
+};
+
+AsciiImage::AsciiImage() : w(0), h(0), bmp(nullptr), palette(nullptr) {}
+
+AsciiImage::AsciiImage(int width, int height) : w(width), h(height), bmp(nullptr), palette(nullptr) {}
+
+AsciiImage::~AsciiImage() { delete[] bmp; delete[] palette; }
+
+AsciiImage::AsciiImage(std::string filename, int color = 0) : w(), h(), bmp(nullptr), palette(nullptr) {
+    /*
+    FILE_impl file = fopen(filename.c_str(), "rb");
+    if (file.is_empty()) {
         file = fopen( ((std::string)"res/" + filename).c_str(), "rb");
-        if(!file) {
-            printf("%s does not exist", filename.c_str());
-            Sleep(2000);
-            exit(1);
-        } else {
+        if(file.is_empty()) 
+            throw std::runtime_error(strcat("No such file: ", filename.c_str()));
+        else
             filename = (std::string)"res/" + filename;
-            fclose(file);
-        }
     }
-    fclose(file);
 
     file = fopen(filename.c_str(), "rb");
-
-    char header[2];
+    */ FILE* file = fopen(filename.c_str(), "rb");
+    
+    char header[2] = "1";
     fread(header, 2, 1, file);
 
     if (header[0] == 'B' && header[1] == 'M') {
@@ -56,12 +66,15 @@ AsciiImage::AsciiImage(std::string filename, int color = 0) : w(), h(), bmp(0), 
         fseek(file, 28, SEEK_SET);
         fread(&d, 2, 1, file);
 
+        if (width < 0 || height < 0) 
+            throw std::runtime_error("ERROR: Negative dimmensions");
+
         palette = new char[65];
 
         w = width * 2;
         h = height;
         bmp = new char[w * h];
-        
+
         fseek(file, offset, SEEK_SET);
         
         switch (d)
@@ -92,8 +105,7 @@ AsciiImage::AsciiImage(std::string filename, int color = 0) : w(), h(), bmp(0), 
                 palette[4] = 0;
                 break;
             default:
-                printf("Color error\n");
-                exit(1);
+                throw std::runtime_error("ERROR: Wrong color palette");
                 break;
             }
             
@@ -106,21 +118,15 @@ AsciiImage::AsciiImage(std::string filename, int color = 0) : w(), h(), bmp(0), 
         switch (d)
         {
         case 1:{
-            for (int _h = h - 1; _h >= 0; _h--) {
+            for (int _h = height - 1; _h >= 0; _h--) {
                 char byte, bytes_to_skip = (4 - ((int)std::ceil( (double)width / 8.0 ) % 4)) % 4;
-                int bits_left;
-                bits_left = 0;
-                while (bits_left < width) {
+                int bits_left = width;
+                while (bits_left > 0) {
                     fread(&byte, 1, 1, file);
                     int x = 8 - std::min(8, bits_left);
-                    // for(int bit_mask = std::pow(2,7); bit_mask >= std::pow(2, x); bit_mask /= 2)
-                        // bmp[h * width + width - bits_left--] = palette[byte & bit_mask];
-                    for (int bit_mask = 1 << 7; bit_mask >= 1 << x; bit_mask >> 1) {
-                        // bmp[_h * w + w - bits_left * 2] = palette[byte & bit_mask ? 1 : 0];
-                        // bmp[_h * w + w - (bits_left--) * 2 - 1] = palette[byte & bit_mask ? 1 : 0];
-                        printf("w:%d\tb_l:%d\n", w, bits_left);
-                        bmp[_h * w + bits_left * 2] = palette[(byte & bit_mask) ? 1 : 0];
-                        bmp[_h * w + (bits_left++) * 2 + 1] = palette[(byte & bit_mask) ? 1 : 0];
+                    for (int bit_mask = (1 << 7); bit_mask >= (1 << x); bit_mask >>= 1) {
+                        bmp[_h * w + w - bits_left * 2] = palette[(byte & bit_mask) ? 1 : 0];
+                        bmp[_h * w + w - (bits_left--) * 2 + 1] = palette[(byte & bit_mask) ? 1 : 0];
                     }
                 }
                 fseek(file, bytes_to_skip, SEEK_CUR);
@@ -183,22 +189,20 @@ AsciiImage::AsciiImage(std::string filename, int color = 0) : w(), h(), bmp(0), 
         }
         
         default:
-            printf("Unsupported color depth\n");
-            fclose(file);
-            exit(1);
+            throw std::runtime_error("Unsupported color depth\n");
             break;
         }
-    } else {
-        printf("Wrong file format");
-        fclose(file);
-        exit(1);
     }
-
+    else 
+        throw std::runtime_error("ERROR: file can't be read");
+        // printf("FUCK header:%c%c\n", header[0], header[1]);
+    // getch();
+    
 }
 
 AsciiImage::AsciiImage(const uint8_t* array, int width, int height, int color = 0) : 
             w(width * 2), h(height), 
-            bmp(0), palette(0) {
+            bmp(nullptr), palette(nullptr) {
     
     bmp = new char[w * h + 1];
     palette = new char[65];
@@ -222,8 +226,7 @@ AsciiImage::AsciiImage(const uint8_t* array, int width, int height, int color = 
         palette[4] = 0;
         break;
     default:
-        printf("Color error\n");
-        exit(1);
+        throw std::runtime_error("Unsupported color depth\n");
         break;
     }
     double grad_scale = 256.0 / (double)strlen(palette);
@@ -236,7 +239,7 @@ AsciiImage::AsciiImage(const uint8_t* array, int width, int height, int color = 
 
 }
 
-AsciiImage::AsciiImage(const AsciiImage& img) : bmp(0), w(img.w), h(img.h), palette(0) {
+AsciiImage::AsciiImage(const AsciiImage& img) : bmp(nullptr), w(img.w), h(img.h), palette(nullptr) {
     if (img.bmp) {
         bmp = new char[h*w];
         memcpy(bmp, img.bmp, w*h);
@@ -247,7 +250,7 @@ AsciiImage::AsciiImage(const AsciiImage& img) : bmp(0), w(img.w), h(img.h), pale
     }
 }
 
-AsciiImage& AsciiImage::operator=(const AsciiImage& img) {
+AsciiImage& AsciiImage::operator=(AsciiImage& img) {
     w = img.w;
     h = img.h;
 
@@ -262,7 +265,21 @@ AsciiImage& AsciiImage::operator=(const AsciiImage& img) {
         palette = new char[65];
         memcpy(palette, img.palette, strlen(img.palette));
     }
+    return *this;
+}
 
+AsciiImage& AsciiImage::operator=(AsciiImage&& img) {
+    w = img.w;
+    h = img.h;
+    
+    if(bmp) delete[] bmp; 
+    if(palette) delete[] palette;
+
+    bmp = img.bmp;
+    palette = img.palette;
+    img.bmp = nullptr;
+    img.palette = nullptr;
+    return *this;
 }
 
 
@@ -293,15 +310,7 @@ AsciiImage& AsciiImage::scale(double scale) {
     return *this;
 }
 
-RESOLUTION AsciiImage::resolution() const {
-    RESOLUTION temp{w,h};
-    return temp;
-}
-
 #ifdef _GLIBCXX_IOSFWD
-std::ostream& operator<<(std::ostream& out, const RESOLUTION& res) {
-    out << "Width: " << res.w << " Height: " << res.h;
-}
 
 std::ostream& cmv::operator<<(std::ostream& out, AsciiImage& img) {
     img.bmp[img.w*img.h] = '\0'; 

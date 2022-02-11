@@ -1,9 +1,10 @@
-#include<asciiImgLib.hpp>
-#include<screen.hpp>
-#include<conio.h>
-#include<vector>
-#include<gif_read.h>
-#include<ctime>
+#include <asciiImgLib.hpp>
+#include <screen.hpp>
+#include <gif_read.h>
+#include <conio.h>
+#include <vector>
+#include <ctime>
+#include <memory>
 
 const char help_message[] = "Usage: %s <file> [<file2> (you can watch several images at the same time with '-ex')]\n[-uwu/-ara/-pix (changes letter palette)]\n[-i (invert colors)]\n[-ex (open new console)]\n[-s <scale size>]\n"; 
 
@@ -88,69 +89,74 @@ int main(int argc, char **argv) {
     
     } else if (file_vec.size() == 1 || !external_console) {
         if(file_vec[0].find(".gif") != string::npos) mode = GIF;
-        else if(file_vec[0].find(".bmp") != string::npos || file_vec[0].find(".jpeg") != string::npos || file_vec[0].find(".png") != string::npos || file_vec[0].find(".jpg") != string::npos || file_vec[0].find(".tiff") != string::npos ) mode = IMG;
+        // else if(file_vec[0].find(".bmp") != string::npos || file_vec[0].find(".jpeg") != string::npos || file_vec[0].find(".png") != string::npos || file_vec[0].find(".jpg") != string::npos || file_vec[0].find(".tiff") != string::npos ) mode = IMG;
+        else if(file_vec[0].find(".bmp") != string::npos) mode = IMG;
         
         switch (mode)
         {
         case IMG: {
-            AsciiImage img(file_vec[0], color);
-            Screen s(img.scale(crop), external_console, 15);
-            _getch();
+            //
+            Screen scr;
+            try {
+                scr = Screen( AsciiImage(file_vec[0], color), crop, external_console, 15);
+            } catch (exception& ex) {
+                cout << "Shit happend: " << ex.what();
+            } catch (...) {
+                cout << "Shit happend: ??? ";
+            } 
+            getch();
             break;
         }
         case GIF: {
 
-            AsciiImage* img_arr;
             int width, height, runtime, num_frames;
 
-            {
-                FILE* fp = fopen(file_vec[0].c_str(), "rb");
+            FILE* fp = fopen(file_vec[0].c_str(), "rb");
+            if(!fp) {
+                fp = fopen((string("res/") + file_vec[0]).c_str(), "rb");
                 if(!fp) {
-                    fp = fopen((string("res/") + file_vec[0]).c_str(), "rb");
-                    if(!fp) {
-                        printf("Error opening gif file\n");
-                        return 0;
-                    }
+                    printf("Error opening gif file\n");
+                    return 0;
                 }
-
-                fseek(fp, 0, SEEK_END);
-                size_t len = ftell(fp);
-
-                uint8_t* gifData = (uint8_t*)malloc(len);
-                rewind(fp);
-                fread(gifData, len, 1, fp);
-
-                gif_read::GIF gif(gifData);
-
-                free(gifData);
-                fclose(fp);
-                
-                width = gif.getWidth();
-                height = gif.getHeight();
-                runtime = gif.getTotalTime();
-                num_frames = gif.getNumFrames();
-
-                img_arr = new AsciiImage[num_frames];
-                
-                for(int i = 0; i < num_frames; i++) 
-                    img_arr[i] = (AsciiImage(gif.getFrame(i), width, height, color).scale(crop));
-            
             }
 
-            Screen s(img_arr[0], external_console, 30);
+            fseek(fp, 0, SEEK_END);
+            size_t len = ftell(fp);
+
+            uint8_t* gifData = (uint8_t*)malloc(len);
+            rewind(fp);
+            fread(gifData, len, 1, fp);
+
+            gif_read::GIF gif(gifData);
+
+            free(gifData);
+            fclose(fp);
+            
+            width = gif.getWidth();
+            height = gif.getHeight();
+            runtime = gif.getTotalTime();
+            num_frames = gif.getNumFrames();
+
+            unique_ptr<AsciiImage> img_arr(new AsciiImage[num_frames]);
+            
+            for(int i = 0; i < num_frames; i++) 
+                img_arr.get()[i] = (AsciiImage(gif.getFrame(i), width, height, color).scale(crop));
+            
+            Screen s(img_arr.get()[0], external_console, 30);
 
             clock_t start;
             double delay = (double)runtime / (double)num_frames / 100.0;
 
             while (1) for(int i = 0; i < num_frames; i++) {
                 start = clock();
-                s << img_arr[i];
+                s << img_arr.get()[i];
                 if(_kbhit()) 
                     goto escape;
                 
                 while ((( clock() - start ) / (double) CLOCKS_PER_SEC) < delay);
 
             }
+
             escape:
 
             break;

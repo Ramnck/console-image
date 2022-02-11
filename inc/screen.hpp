@@ -1,12 +1,12 @@
 #pragma once
 
-#include<string>
-#include<cstdio>
-#include<Windows.h>
-
 #ifndef MULTI_CONSOLE_LIBRARY
 #define MULTI_CONSOLE_LIBRARY
 
+#include <string>
+#include <Windows.h>
+
+#include<conio.h>
 
 void setFont(int size);
 void setConsole(int w, int h);
@@ -21,6 +21,7 @@ namespace cmv {
 namespace fcmd // fast console    
 {
     class Screen {
+    protected:
         COORD pointer;
         int width;
         int height;
@@ -43,18 +44,21 @@ namespace fcmd // fast console
         char& pix();
         char& pix(int _height, int _width);
 
-        public:
+        // Screen& fit(int window_width, int window_height);
 
+    public:
+
+        Screen();
         Screen(int _width, int _height, int external_console, int font);
 
         #ifdef ASCII_IMAGE_LIBRARY
         Screen(cmv::AsciiImage& img, int external_console, int font);
+        Screen(cmv::AsciiImage&& img, double scale, int external_console, int font);
         Screen& operator<<(cmv::AsciiImage& input);
-        Screen& operator<<(cmv::RESOLUTION r);
+        Screen& operator<<(cmv::AsciiImage&& input);
         #endif
 
-        Screen() = delete;
-        Screen(Screen&) = delete;
+        Screen& operator=(Screen&& scr);
         Screen& operator=(Screen&) = delete;
 
         ~Screen();
@@ -75,4 +79,4 @@ namespace fcmd // fast console
     
 }
 
-#endif
+#endif /*  MULTI_CONSOLE_LIBRARY  */
