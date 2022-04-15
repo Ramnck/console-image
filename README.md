@@ -19,3 +19,7 @@ Supported formats:
 - BMP
 
 - Gif
+
+
+____
+#### Gif reading module was taken from khalladay's repository gif_read
